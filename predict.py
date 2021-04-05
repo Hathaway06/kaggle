@@ -34,5 +34,6 @@ res_sales=good_sales.loc[:,['ID','item_cnt_month']]
 
 res_sales['item_cnt_month'][res_sales['item_cnt_month'].isnull()]=0
 
+#保存结果
 res_sales.to_csv('submission.csv',index=False)
 

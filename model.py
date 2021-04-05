@@ -41,8 +41,7 @@ gc.collect();
 
 import lightgbm as lgb
 from sklearn.metrics import mean_squared_error
-from sklearn.datasets import load_boston
-from sklearn.model_selection import train_test_split
+
 
 ts = time.time()
 train_data = lgb.Dataset(data=X_train, label=Y_train)

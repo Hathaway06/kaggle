@@ -16,14 +16,6 @@ from itertools import product
 sales_train = pd.read_csv(r'C://Users//Frank//Desktop//predict_future_sales//sales_train.csv')
 test = pd.read_csv(r'C://Users//Frank//Desktop//predict_future_sales//test.csv')
 
-# print(sales_train.head(10))
-
-# print('how many lines in train set:', sales_train.shape)
-# print('unique items in train set:', sales_train['item_id'].nunique())
-# print('unique shops in train set:', sales_train['shop_id'].nunique())
-# print('how many lines in test set:', test.shape)
-# print('unique items in test set:', test['item_id'].nunique())
-# print('unique shops in test set:', test['shop_id'].nunique())
 
 #基线模型预测
     # 训练集中的数据是 商品-商店-每天的销售。而要求预测的是商品-商店-每月的销售，因此需要合理使用groupby()和agg()函数。
@@ -74,16 +66,9 @@ sales_by_item_id.columns.values[0] = 'item_id'
 outdated_items = sales_by_item_id[sales_by_item_id.loc[:,'27':].sum(axis=1)==0]
 # print('Outdated items:', len(outdated_items))
 test = pd.read_csv(r'C://Users//Frank//Desktop//predict_future_sales//test.csv')
-# print('unique items in test set:', test['item_id'].nunique())
-# print('Outdated items in test set:', test[test['item_id'].isin(outdated_items['item_id'])]['item_id'].nunique())
-    # Outdated items: 12391（训练集无效商品个数）
-    # unique items in test set: 5100
-    # Outdated items in test set: 164（测试集中无效商品个数）
-
 
 #删除重复行
 print("duplicated lines in sales_train is", len(sales_train[sales_train.duplicated()]))
-
 
 #每个商店的销量
     # 共有 60 个商店，坐落在31个城市,城市的信息可以作为商店的一个特征。
@@ -116,25 +101,9 @@ sales_train_merge_cat = pd.merge(sales_train,item_categories, on = 'item_id', ho
 sales_train_merge_cat.head()
 
 #查找离群值
-# plt.figure(figsize=(10,4))
-# plt.xlim(-100,3000)
-# sns.boxplot(x = sales_train['item_cnt_day'])
-# print('Sale volume outliers:',sales_train['item_cnt_day'][sales_train['item_cnt_day']>1001].unique())
-# plt.figure(figsize=(10,4))
-# plt.xlim(-10000,320000)
-# sns.boxplot(x = sales_train['item_price'])
-# print('Sale price outliers:',sales_train['item_price'][sales_train['item_price']>300000].unique())
-# # plt.show()
 #
 sales_train = sales_train[sales_train['item_cnt_day'] <1001]
 sales_train = sales_train[sales_train['item_price'] < 300000]
-# plt.figure(figsize=(10,4))
-# plt.xlim(-100,3000)
-# sns.boxplot(x = sales_train['item_cnt_day'])
-#
-# plt.figure(figsize=(10,4))
-# plt.xlim(-10000,320000)
-# sns.boxplot(x = sales_train['item_price'])
 
 
 #将离群值置为中位数
@@ -145,12 +114,6 @@ print(median)
 
 
 #测试集分析
-    # 测试集有5100 种商品，42个商店。刚好就是5100 * 42 = 214200种 商品-商店组合。可以分为三大类
-    #
-    # 363种商品在训练集没有出现，363*42=15,246种商品-商店没有数据，约占7%。
-    # 87550种商品-商店组合是只出现过商品，没出现过组合。约占42%。
-    # 111404种商品-商店组合是在训练集中完整出现过的。约占51%。
-
 test = pd.read_csv(r'C://Users//Frank//Desktop//predict_future_sales//test.csv')
 good_sales = test.merge(sales_train, on=['item_id','shop_id'], how='left').dropna()
 good_pairs = test[test['ID'].isin(good_sales['ID'])]
@@ -438,10 +401,6 @@ matrix['delta_price_lag'] = matrix.apply(select_trend, axis=1)
 matrix['delta_price_lag'] = matrix['delta_price_lag'].astype(np.float16)
 matrix['delta_price_lag'].fillna(0, inplace=True)
 
-# https://stackoverflow.com/questions/31828240/first-non-null-value-per-row-from-a-list-of-pandas-columns/31828559
-# matrix['price_trend'] = matrix[['delta_price_lag_1','delta_price_lag_2','delta_price_lag_3']].bfill(axis=1).iloc[:, 0]
-# Invalid dtype for backfill_2d [float16]
-
 fetures_to_drop = ['item_avg_item_price', 'date_item_avg_item_price']
 for i in lags:
     fetures_to_drop += ['date_item_avg_item_price_lag_' + str(i)]
@@ -499,38 +458,4 @@ matrix = fill_na(matrix)
 time.time() - ts
 matrix.to_csv(r'C://Users//Frank//Desktop//predict_future_sales//data.csv')
 print(matrix)
-
-# #建模
-# # def plot_features(booster, figsize):
-# #     fig, ax = plt.subplots(1,1,figsize=figsize)
-# #     return plot_importance(booster=booster, ax=ax)
-#
-# data = pd.read_pickle('data_simple.pkl')
-#
-# X_train = data[data.date_block_num < 33].drop(['item_cnt_month'], axis=1)
-# Y_train = data[data.date_block_num < 33]['item_cnt_month']
-# X_valid = data[data.date_block_num == 33].drop(['item_cnt_month'], axis=1)
-# Y_valid = data[data.date_block_num == 33]['item_cnt_month']
-# X_test = data[data.date_block_num == 34].drop(['item_cnt_month'], axis=1)
-#
-#
-# del data
-# gc.collect();
-#
-# import lightgbm as lgb
-#
-# ts = time.time()
-# train_data = lgb.Dataset(data=X_train, label=Y_train)
-# valid_data = lgb.Dataset(data=X_valid, label=Y_valid)
-#
-# time.time() - ts
-#
-# params = {"objective": "regression", "metric": "rmse", 'n_estimators': 10000, 'early_stopping_rounds': 50,
-#           "num_leaves": 200, "learning_rate": 0.01, "bagging_fraction": 0.9,
-#           "feature_fraction": 0.3, "bagging_seed": 0}
-#
-# lgb_model = lgb.train(params, train_data, valid_sets=[train_data, valid_data], verbose_eval=1000)
-# Y_test = lgb_model.predict(X_test).clip(0, 20)
-#
-#
 
