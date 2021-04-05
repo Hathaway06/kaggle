@@ -1,10 +1,3 @@
-'''
-@author: Frank
-@contact: 734778368@qq.com
-@file: model.py
-@time: 2021-04-04 15:23
-@desc:
-'''
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt

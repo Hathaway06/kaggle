@@ -1,10 +1,3 @@
-'''
-@author: Frank
-@contact: 734778368@qq.com
-@file: describe_process.py
-@time: 2021-04-03 21:27
-@desc:
-'''
 #导入包
 import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)

@@ -1,12 +1,3 @@
-'''
-@author: Frank
-@contact: 734778368@qq.com
-@file: predict.py
-@time: 2021-04-04 18:16
-@desc:
-'''
-
-
 from sklearn.externals import joblib
 import re
 import pandas as pd
