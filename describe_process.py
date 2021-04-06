@@ -1,42 +1,28 @@
 #导入包
-import numpy as np # linear algebra
-import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import LabelEncoder
 import time
-import gc
-import pickle
 from itertools import product
 
 #读入数据
-    # 训练集有六列，分别介绍日期，月份，商店，商品，价格和日销量
-    # 测试集有三列，分别是ID，商店，和商品。
-
 sales_train = pd.read_csv(r'C://Users//Frank//Desktop//predict_future_sales//sales_train.csv')
 test = pd.read_csv(r'C://Users//Frank//Desktop//predict_future_sales//test.csv')
 
-
 #基线模型预测
-    # 训练集中的数据是 商品-商店-每天的销售。而要求预测的是商品-商店-每月的销售，因此需要合理使用groupby()和agg()函数。
-    # 训练集没有出现过的 商品-商店组合，一律填零，最终的结果需要限幅在 [0,20]区间。
-
+#计算第33个月的月总销量，作为第34个月的预测
 sales_train_subset = sales_train[sales_train['date_block_num'] == 33]
-# print(sales_train_subset.head())
-
 grouped = sales_train_subset[['shop_id','item_id','item_cnt_day']].groupby(['shop_id','item_id']).agg({'item_cnt_day':'sum'}).reset_index()
 grouped = grouped.rename(columns={'item_cnt_day' : 'item_cnt_month'})
-# print(grouped.head())
-
 test = pd.merge(test,grouped, on = ['shop_id','item_id'], how = 'left')
-# print(test.head())
 test['item_cnt_month'] = test['item_cnt_month'].fillna(0).clip(0,20)#限制结果范围在0-20
-# print(test.head())
 test = test[['ID','item_cnt_month']]
 submission = test.set_index('ID')
 submission.to_csv('submission_baseline.csv')
 
-#节省存储空间
+#数据类型转换--节省存储空间
 def downcast_dtypes(df):
     cols_float64 = [c for c in df if df[c].dtype == 'float64']
     cols_int64_32 = [c for c in df if df[c].dtype in ['int64', 'int32']]
@@ -45,7 +31,6 @@ def downcast_dtypes(df):
     return df
 sales_train = downcast_dtypes(sales_train)
 test = downcast_dtypes(test)
-# print(sales_train.info())
 
 #数据探索（每件商品销量、每个商店销量、每类商品销量、销量和价格离群值）
 #每件商品的销量（得到每件商品每月的销量，并且把产品id设置为index）
@@ -55,14 +40,7 @@ sales_by_item_id.columns = sales_by_item_id.columns.droplevel().map(str)##有点
 sales_by_item_id = sales_by_item_id.reset_index(drop=True).rename_axis(None, axis=1)
 sales_by_item_id.columns.values[0] = 'item_id'
 
-# print(sales_by_item_id.tail())
-#月销量图
-# sales_by_item_id.sum()[1:].plot(legend=True, label="Monthly sum")
-
 #分析有多少商品在最近的连续六个月内，没有销量(没有历史数据的商品和商店全部置为0)
-    # 训练集一共21807种商品，其中有12391种在最近的六个月没有销量。
-    # 测试集一共5100种商品，其中有164种在训练中最近六个月没有销量，共出现了164 * 42 = 6888次。
-    # Tips：在最终的预测结果中，我们可以将这些商品的销量大胆地设置为零。
 outdated_items = sales_by_item_id[sales_by_item_id.loc[:,'27':].sum(axis=1)==0]
 # print('Outdated items:', len(outdated_items))
 test = pd.read_csv(r'C://Users//Frank//Desktop//predict_future_sales//test.csv')
@@ -73,7 +51,6 @@ print("duplicated lines in sales_train is", len(sales_train[sales_train.duplicat
 #每个商店的销量
     # 共有 60 个商店，坐落在31个城市,城市的信息可以作为商店的一个特征。
     # 这里先分析下哪些商店是最近才开的，哪些是已经关闭了的，同样分析最后六个月的数据。
-    #
     # shop_id = 36 是新商店
     # shop_id = [0 1 8 11 13 17 23 29 30 32 33 40 43 54] 可以认为是已经关闭了。
     # Tips：新商店，可以直接用第33个月来预测34个月的销量，因为它没有任何历史数据。而已经关闭的商店，销量可以直接置零
@@ -110,7 +87,7 @@ sales_train = sales_train[sales_train['item_price'] < 300000]
 median = sales_train[(sales_train['date_block_num'] == 4) & (sales_train['shop_id'] == 32)\
                      & (sales_train['item_id'] == 2973) & (sales_train['item_price']>0)].item_price.median()
 sales_train.loc[sales_train['item_price']<0,'item_price'] = median
-print(median)
+# print(median)
 
 
 #测试集分析
@@ -125,14 +102,14 @@ print('3. Only Item_id Info:', len(test)-len(no_data_items)-len(good_pairs))
 
 #店铺信息
 shops = pd.read_csv(r'C://Users//Frank//Desktop//predict_future_sales//shops.csv')
-print(shops.head())
+# print(shops.head())
 
 sales12 = np.array(sales_by_shop_id.loc[sales_by_shop_id['shop_id'] == 12 ].values)
 sales12 = sales12[:,1:].reshape(-1)
 sales55 = np.array(sales_by_shop_id.loc[sales_by_shop_id['shop_id'] == 55 ].values)
 sales55 = sales55[:,1:].reshape(-1)
 months = np.array(sales_by_shop_id.loc[sales_by_shop_id['shop_id'] == 12 ].columns[1:])
-np.corrcoef(sales12,sales55)
+print(np.corrcoef(sales12,sales55))
 
 #商店异常值转换
 sales_train.loc[sales_train['shop_id'] == 0,'shop_id'] = 57
